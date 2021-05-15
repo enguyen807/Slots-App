@@ -1,30 +1,33 @@
 <template>
-  <transition
-    name="mainSlide"
-    class="Reel"
-    v-on:enter="enter"
-    v-on:leave="leave"
-    v-on:css="false"
-  >
-    <div
-      v-show="spin"
-      name="slide"
-      ref="reelWrapper"
-      class="Reel-wrapper d-flex flex-column mb-6"
-      :class="randomIndex() === 0 ? 'Reel-wrapper' : 'Reel-wrapper-offset'"
+  <div class="Reel-wrapper white">
+    <transition
+      v-on:before-enter="beforeEnter"
+      v-on:enter="enter"
+      v-on:leave="leave"
+      v-on:after-leave="afterLeave"
     >
-      <img
-        v-for="(item, index) in shuffledReelTileData"
-        :key="item.name + index"
-        class="Reel-image mb-3"
-        :data-index="index"
-        :src="`${item.image}`"
-      />
-    </div>
-  </transition>
+      <div
+        v-show="spin"
+        id="reels"
+        name="slide"
+        class="Reel d-flex flex-column mb-6 white"
+        :class="offset === 0 ? 'Reel' : 'Reel-offset'"
+      >
+        <img
+          v-for="(item, index) in shuffledReelTileData"
+          :key="item.name + index"
+          class="Reel-image mb-3"
+          :data-index="index"
+          :src="`${item.image}`"
+        />
+      </div>
+    </transition>
+  </div>
 </template>
 
 <script>
+import { gsap } from "gsap";
+
 export default {
   props: {
     duration: {
@@ -57,6 +60,7 @@ export default {
       },
     ],
     reelDuration: 0,
+    offset: 0,
   }),
   watch: {},
   beforeMount() {
@@ -75,7 +79,6 @@ export default {
     this.reelTileData = symbolsArray;
   },
   mounted() {
-    // Animation is set to half the speed of 1 sec therefore time spent spinning will be halved
     this.reelDuration = this.duration;
   },
   methods: {
@@ -91,41 +94,71 @@ export default {
     },
     start() {
       this.spinRoulette();
+      this.randomIndex();
     },
     spinRoulette() {
       this.spin = true;
+      this.$emit("reel-spinning", this.spin);
       this.reelTileData = this.shuffleArray(this.reelTileData);
     },
+    resetReelDuration() {},
     animateEnd() {
-      // console.log(this.reelDuration);
-      if (this.reelDuration === 0) {
+      if (this.reelDuration > 0) {
+        setTimeout(() => {
+          this.reelDuration -= 1;
+          this.animateEnd();
+        }, 1000);
+      } else {
         this.spin = false;
-        console.log("Finished");
-        return true;
+        this.$emit("reel-spinning", this.spin);
+        // console.log("Finished");
+        let results = [];
+        if (this.offset === 1) {
+          results.push(this.shuffledReelTileData[9]);
+          results.push(this.shuffledReelTileData[10]);
+          return this.$emit("stopped", results);
+        }
+        results.push(this.shuffledReelTileData[9]);
+        return this.$emit("stopped", results);
       }
-
-      setTimeout(() => {
-        this.reelDuration -= 1;
-        this.animateEnd();
-      }, 1000);
-
-      // if (this.reelDuration > 0) {
-      //   this.animateEnd();
-      // } else {
-      //   const topBar = this.shuffledReelTileData[0];
-      //   const middleBar = this.shuffledReelTileData[1];
-      //   const bottomBar = this.shuffledReelTileData[2];
-      //   this.$emit("stopped", middleBar);
-      // }
     },
     randomIndex() {
-      return Math.floor(Math.random() * 2);
+      this.offset = Math.floor(Math.random() * 2);
     },
-    spinAnimation(el) {
+    spinAnimation(el, done) {
       let vm = this;
-      let spinAnimation = gsap.timeline();
-      spinAnimation.add();
-      spinAnimation.to(el, {
+      let tl = gsap.timeline();
+
+      // Since duration of animation is set to half a second we need to double the time it spins or it will
+      // end early while the timer is still counting down
+      let spinAnima = gsap.to(el, {
+        duration: 0.5,
+        ease: "none",
+        repeat: this.reelDuration,
+        y: -1000,
+        onStart() {
+          vm.animateEnd();
+        },
+        onComplete() {
+          done;
+        },
+      });
+      tl.add(spinAnima);
+      return tl;
+    },
+    beforeEnter(el) {
+      let vm = this;
+      console.log("beforeEnter");
+      gsap.set(el, {
+        y: 0,
+        onComplete() {
+          vm.reelDuration = vm.duration;
+        },
+      });
+    },
+    enter(el, done) {
+      let vm = this;
+      gsap.to(el, {
         duration: 0.5,
         ease: "none",
         repeat: this.reelDuration * 2,
@@ -133,18 +166,28 @@ export default {
         onStart() {
           vm.animateEnd();
         },
+        onComplete() {
+          done;
+          // console.log("Enter");
+        },
       });
-      return spinAnimation;
-    },
-    enter(el, done) {
-      this.spinAnimation(el);
-      done;
-      // console.log("enter");
     },
     leave(el, done) {
-      this.spinAnimation(el);
-      done;
-      // console.log("leave");
+      let vm = this;
+      gsap.to(el, {
+        duration: 0.5,
+        ease: "none",
+        repeat: this.reelDuration * 2,
+        y: -1000,
+        onComplete() {
+          done;
+          // console.log("Leave");
+          vm.reelDuration = vm.duration;
+        },
+      });
+    },
+    afterLeave(el) {
+      // console.log("afterLeave");
     },
   },
   computed: {
@@ -160,13 +203,31 @@ export default {
   --tileSize: 90px;
 }
 
-.Reel-wrapper {
-  bottom: 55px;
+.Reel-image {
+  width: 100%;
+  max-width: 131px;
+}
+
+.Reel {
+  bottom: 15px;
   position: relative;
 }
 
-.Reel-wrapper-offset {
-  bottom: 125px;
+.Reel-wrapper {
+  border-color: none;
+  border: 5px solid #aed581 !important;
+  z-index: 900;
+}
+
+.Reel-offset {
+  bottom: 105px;
   position: relative;
+}
+
+@media only screen and (min-width: 540px) and (max-width: 959px) {
+  .Reel {
+    bottom: 45px;
+    position: relative;
+  }
 }
 </style>>
