@@ -4,19 +4,19 @@
       v-on:before-enter="beforeEnter"
       v-on:enter="enter"
       v-on:leave="leave"
-      v-on:after-leave="afterLeave"
+      v-on:css="false"
     >
       <div
         v-show="spin"
         id="reels"
         name="slide"
-        class="Reel d-flex flex-column mb-6 white"
+        class="d-flex flex-column mb-6 white"
         :class="offset === 0 ? 'Reel' : 'Reel-offset'"
       >
         <img
           v-for="(item, index) in shuffledReelTileData"
           :key="item.name + index"
-          class="Reel-image mb-3"
+          class="Reel-image my-3"
           :data-index="index"
           :src="`${item.image}`"
         />
@@ -62,7 +62,26 @@ export default {
     reelDuration: 0,
     offset: 0,
   }),
-  watch: {},
+  watch: {
+    spin(value) {
+      if (value) {
+        setTimeout(() => {
+          this.reelDuration--;
+        }, 1000);
+      }
+    },
+    reelDuration: {
+      handler(value) {
+        if (value > 0 && this.spin) {
+          setTimeout(() => {
+            this.reelDuration--;
+          }, 1000);
+        } else {
+          this.animateEnd();
+        }
+      },
+    },
+  },
   beforeMount() {
     let symbolsArray = [];
     let count = this.reelData.length * 3;
@@ -79,7 +98,10 @@ export default {
     this.reelTileData = symbolsArray;
   },
   mounted() {
+    //Sets local duration with duration prop as we can mutate a prop
     this.reelDuration = this.duration;
+    //Sets initial position of reels
+    this.randomIndex();
   },
   methods: {
     shuffleArray(array) {
@@ -93,25 +115,24 @@ export default {
       return a;
     },
     start() {
+      // Start spinning of roulette
       this.spinRoulette();
-      this.randomIndex();
     },
     spinRoulette() {
+      // Changing state of spin will trigger animation
       this.spin = true;
+      // reel-spinning emits a boolean that will disable spin button
       this.$emit("reel-spinning", this.spin);
       this.reelTileData = this.shuffleArray(this.reelTileData);
     },
-    resetReelDuration() {},
     animateEnd() {
       if (this.reelDuration > 0) {
-        setTimeout(() => {
-          this.reelDuration -= 1;
-          this.animateEnd();
-        }, 1000);
+        // Randomize reel offset every second of timer duration
+        this.randomIndex();
       } else {
         this.spin = false;
         this.$emit("reel-spinning", this.spin);
-        // console.log("Finished");
+
         let results = [];
         if (this.offset === 1) {
           results.push(this.shuffledReelTileData[9]);
@@ -124,27 +145,6 @@ export default {
     },
     randomIndex() {
       this.offset = Math.floor(Math.random() * 2);
-    },
-    spinAnimation(el, done) {
-      let vm = this;
-      let tl = gsap.timeline();
-
-      // Since duration of animation is set to half a second we need to double the time it spins or it will
-      // end early while the timer is still counting down
-      let spinAnima = gsap.to(el, {
-        duration: 0.5,
-        ease: "none",
-        repeat: this.reelDuration,
-        y: -1000,
-        onStart() {
-          vm.animateEnd();
-        },
-        onComplete() {
-          done;
-        },
-      });
-      tl.add(spinAnima);
-      return tl;
     },
     beforeEnter(el) {
       let vm = this;
@@ -168,7 +168,6 @@ export default {
         },
         onComplete() {
           done;
-          // console.log("Enter");
         },
       });
     },
@@ -181,13 +180,9 @@ export default {
         y: -1000,
         onComplete() {
           done;
-          // console.log("Leave");
           vm.reelDuration = vm.duration;
         },
       });
-    },
-    afterLeave(el) {
-      // console.log("afterLeave");
     },
   },
   computed: {
@@ -209,19 +204,21 @@ export default {
 }
 
 .Reel {
-  bottom: 15px;
+  bottom: 41px;
   position: relative;
 }
 
-.Reel-wrapper {
-  border-color: none;
-  border: 5px solid #aed581 !important;
-  z-index: 900;
+.Reel.v-leave-active {
+  bottom: 26px;
 }
 
 .Reel-offset {
-  bottom: 105px;
+  bottom: 102px;
   position: relative;
+}
+
+.Reel-offset.v-leave-active {
+  bottom: 85px;
 }
 
 @media only screen and (min-width: 540px) and (max-width: 959px) {

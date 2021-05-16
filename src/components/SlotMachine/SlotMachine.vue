@@ -1,8 +1,10 @@
 <template>
   <v-container fluid class="d-flex justify-center mb-6" flat tile>
-    <v-card flat class="d-flex flex-column flex-md-row pa-3">
-      <div class="col-md-6">
-        <div class="SlotMachine d-flex black">
+    <v-card flat class="d-flex flex-column flex-grow-1 flex-md-row pa-3">
+      <v-col cols="12" md="6" class="justify-center">
+        <div
+          class="SlotMachine d-flex justify-space-between black ma-auto width-380"
+        >
           <div ref="payline1" class="SlotMachine-payline--top"></div>
           <div ref="payline2" class="SlotMachine-payline--mid"></div>
           <div ref="payline3" class="SlotMachine-payline--bot"></div>
@@ -29,21 +31,21 @@
         </div>
         <v-text-field
           label="Credits"
-          class="mt-6"
+          class="credits--input mt-6 ma-auto width-380"
           outlined
           dense
           v-model="currentBalance"
         ></v-text-field>
-      </div>
-      <div class="flex-column col-md-6">
-        <div class="paytable">
+      </v-col>
+      <v-col cols="12" md="6" class="flex-column">
+        <div class="width-380 paytable ma-auto">
           <div
             class="paytable--wrapper"
             v-for="(item, index) in payTable"
             :key="index"
           >
             <v-row class="paytable--row" v-if="item.combination.length > 2">
-              <v-col class="paytable--imgColumn pr-0">
+              <v-col class="paytable--imgColumn pr-0 col-4">
                 <img
                   class="paytable--img"
                   v-for="(symbol, index) in item.combination"
@@ -53,7 +55,7 @@
                   height="22"
                 />
               </v-col>
-              <v-col class="paytable--textColumn col-3 col-md-4">
+              <v-col class="paytable--textColumn col-4 col-md-5">
                 on {{ item.position ? item.position : "any" }} line
               </v-col>
               <v-col class="paytable--valueColumn text-right">{{
@@ -83,18 +85,19 @@
             </v-row>
           </div>
         </div>
-
-        <v-btn
-          :disabled="this.spinning"
-          block
-          elevation="2"
-          raised
-          class="accent mt-3"
-          @mousedown="spin()"
-        >
-          Spin
-        </v-btn>
-      </div>
+        <div class="width-380 mt-3 ma-auto">
+          <v-btn
+            :disabled="this.spinning"
+            block
+            elevation="2"
+            raised
+            class="accent mt-3"
+            @mousedown="spin()"
+          >
+            Spin
+          </v-btn>
+        </div>
+      </v-col>
     </v-card>
   </v-container>
 </template>
@@ -160,6 +163,7 @@ export default {
   }),
   methods: {
     handleSpinStatus(e) {
+      console.log(e);
       this.spinning = e;
     },
     spin() {
@@ -169,17 +173,50 @@ export default {
       this.$refs.reel3.start();
     },
     reelStopped(resultData) {
-      console.log("Payline1: ", this.$refs.payline1.getBoundingClientRect());
-      console.log("Payline2: ", this.$refs.payline2.getBoundingClientRect());
-      console.log("Payline3: ", this.$refs.payline3.getBoundingClientRect());
+      // console.log("Payline1: ", this.$refs.payline1.getBoundingClientRect());
+      // console.log("Payline2: ", this.$refs.payline2.getBoundingClientRect());
+      // console.log("Payline3: ", this.$refs.payline3.getBoundingClientRect());
 
       this.results.push(resultData);
       if (this.results.length === 3) {
         this.checkWin(this.results);
       }
     },
+    checkArrayEqualLength(array) {
+      // Check if arrays are the same length
+      for (let i = 0; i < array.length; i++) {
+        if (array[i].length !== array[1].length) return false;
+      }
+
+      // Otherwise, return true
+      return true;
+    },
     checkWin(data) {
-      // console.log(data);
+      if (!this.checkArrayEqualLength(data)) {
+        return;
+      }
+      const paytable = this.payTable;
+      let topArray = [];
+      let midArray = [];
+      let botArray = [];
+      if (data[0].length === 2) {
+        topArray.push([...data[0]].shift());
+        topArray.push([...data[1]].shift());
+        topArray.push([...data[2]].shift());
+
+        botArray.push([...data[0]].pop());
+        botArray.push([...data[1]].pop());
+        botArray.push([...data[2]].pop());
+      } else {
+        midArray.push(...data[0], ...data[1], ...data[2]);
+      }
+
+      // Loop through paytable
+      // Compare data[0].every(v => combination.includes(v))
+      console.log(topArray);
+      console.log(midArray);
+      console.log(botArray);
+      for (let i = 0; i < paytable.length; i++) {}
     },
   },
 };
@@ -193,6 +230,7 @@ export default {
   height: 280px;
   position: relative;
 }
+
 .SlotMachine-payline--top {
   position: absolute;
   top: calc(var(--tileSize) * 0.7 * 1.1666);
@@ -200,6 +238,7 @@ export default {
   width: 100%;
   background: #aed581;
 }
+
 .SlotMachine-payline--mid {
   position: absolute;
   top: calc(var(--tileSize) * 1.3 * 1.1666);
@@ -207,6 +246,7 @@ export default {
   width: 100%;
   background: #aed581;
 }
+
 .SlotMachine-payline--bot {
   position: absolute;
   top: calc(var(--tileSize) * 1.9 * 1.1666);
@@ -222,6 +262,10 @@ export default {
 .v-card__actions {
   /* border: 2px solid black;
   border-radius: 5px; */
+}
+
+.width-380 {
+  max-width: 380px;
 }
 
 .paytable--img {
