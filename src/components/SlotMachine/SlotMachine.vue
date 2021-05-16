@@ -164,7 +164,9 @@ export default {
   methods: {
     handleSpinStatus(e) {
       console.log(e);
-      this.spinning = e;
+      if (this.$refs.reel3.spin === e) {
+        this.spinning = e;
+      }
     },
     spin() {
       this.results = [];
