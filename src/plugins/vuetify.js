@@ -3,7 +3,11 @@ import Vuetify from "vuetify";
 import "vuetify/dist/vuetify.min.css";
 import colors from "vuetify/lib/util/colors";
 
-Vue.use(Vuetify);
+Vue.use(Vuetify, {
+  options: {
+    customProperties: true,
+  },
+});
 
 export default new Vuetify({
   theme: {

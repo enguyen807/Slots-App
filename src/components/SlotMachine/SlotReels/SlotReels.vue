@@ -116,6 +116,7 @@ export default {
     },
     start() {
       // Start spinning of roulette
+      this.randomIndex();
       this.spinRoulette();
     },
     spinRoulette() {
@@ -128,17 +129,20 @@ export default {
     animateEnd() {
       if (this.reelDuration > 0) {
         // Randomize reel offset every second of timer duration
-        this.randomIndex();
       } else {
         this.spin = false;
         this.$emit("reel-spinning", this.spin);
 
         let results = [];
         if (this.offset === 1) {
+          console.log("offset1", this.offset);
+
           results.push(this.shuffledReelTileData[9]);
           results.push(this.shuffledReelTileData[10]);
           return this.$emit("stopped", results);
         }
+        console.log("offset0", this.offset);
+
         results.push(this.shuffledReelTileData[9]);
         return this.$emit("stopped", results);
       }
@@ -148,7 +152,7 @@ export default {
     },
     beforeEnter(el) {
       let vm = this;
-      console.log("beforeEnter");
+      // console.log("beforeEnter");
       gsap.set(el, {
         y: 0,
         onComplete() {
@@ -161,6 +165,7 @@ export default {
       gsap.to(el, {
         duration: 0.5,
         ease: "none",
+        lazy: true,
         repeat: this.reelDuration * 2,
         y: -1000,
         onStart() {
@@ -176,6 +181,8 @@ export default {
       gsap.to(el, {
         duration: 0.5,
         ease: "none",
+        stagger: 0.5,
+        lazy: true,
         repeat: this.reelDuration * 2,
         y: -1000,
         onComplete() {

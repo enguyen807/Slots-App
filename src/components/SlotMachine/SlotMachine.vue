@@ -5,9 +5,21 @@
         <div
           class="SlotMachine d-flex justify-space-between black ma-auto width-380"
         >
-          <div ref="payline1" class="SlotMachine-payline--top"></div>
-          <div ref="payline2" class="SlotMachine-payline--mid"></div>
-          <div ref="payline3" class="SlotMachine-payline--bot"></div>
+          <div
+            ref="payline1"
+            class="SlotMachine-payline--top"
+            :class="winningLine === 'top' ? 'payline-win' : ''"
+          ></div>
+          <div
+            ref="payline2"
+            class="SlotMachine-payline--mid"
+            :class="winningLine === 'center' ? 'payline-win' : ''"
+          ></div>
+          <div
+            ref="payline3"
+            class="SlotMachine-payline--bot"
+            :class="winningLine === 'bottom' ? 'payline-win' : ''"
+          ></div>
           <Reels
             :duration="2"
             name="reel1"
@@ -28,6 +40,7 @@
             @reel-spinning="handleSpinStatus"
             v-on:stopped="reelStopped"
           ></Reels>
+          <div class="gradient-overlay"></div>
         </div>
         <v-text-field
           label="Credits"
@@ -44,7 +57,16 @@
             v-for="(item, index) in payTable"
             :key="index"
           >
-            <v-row class="paytable--row" v-if="item.combination.length > 2">
+            <v-row
+              class="paytable--row"
+              v-if="
+                !handleArrayComparison(['7', 'Cherry'], item.combination) &&
+                !handleArrayComparison(
+                  ['BAR', '2xBAR', '3xBAR'],
+                  item.combination
+                )
+              "
+            >
               <v-col class="paytable--imgColumn pr-0 col-4">
                 <img
                   class="paytable--img"
@@ -58,9 +80,11 @@
               <v-col class="paytable--textColumn col-4 col-md-5">
                 on {{ item.position ? item.position : "any" }} line
               </v-col>
-              <v-col class="paytable--valueColumn text-right">{{
-                item.value
-              }}</v-col>
+              <v-col
+                class="paytable--valueColumn text-right"
+                v-if="!item.win"
+                >{{ item.value }}</v-col
+              >
             </v-row>
             <v-row class="paytable--row" v-else>
               <v-col
@@ -79,9 +103,11 @@
 
                 on any line
               </v-col>
-              <v-col class="paytable--valueColumn text-right">{{
-                item.value
-              }}</v-col>
+              <v-col
+                class="paytable--valueColumn text-right"
+                v-if="!item.win"
+                >{{ item.value }}</v-col
+              >
             </v-row>
           </div>
         </div>
@@ -110,7 +136,7 @@ export default {
     Reels,
   },
   data: () => ({
-    currentBalance: 0,
+    currentBalance: 100,
     payTable: [
       {
         position: "top",
@@ -121,54 +147,63 @@ export default {
         position: "center",
         combination: ["Cherry", "Cherry", "Cherry"],
         value: 1000,
+        win: false,
       },
       {
         position: "bottom",
         combination: ["Cherry", "Cherry", "Cherry"],
         value: 4000,
+        win: false,
       },
       {
         position: null,
         combination: ["7", "7", "7"],
         value: 150,
+        win: false,
       },
       {
         position: null,
         combination: ["7", "Cherry"],
         value: 75,
+        win: false,
       },
       {
         position: null,
         combination: ["3xBAR", "3xBAR", "3xBAR"],
         value: 50,
+        win: false,
       },
       {
         position: null,
         combination: ["2xBAR", "2xBAR", "2xBAR"],
         value: 20,
+        win: false,
       },
       {
         position: null,
         combination: ["BAR", "BAR", "BAR"],
         value: 10,
+        win: false,
       },
       {
         position: null,
-        combination: ["BAR"],
+        combination: ["BAR", "2xBAR", "3xBAR"],
         value: 5,
+        win: false,
       },
     ],
     spinning: false,
     results: [],
+    winningLine: null,
   }),
   methods: {
     handleSpinStatus(e) {
-      console.log(e);
       if (this.$refs.reel3.spin === e) {
         this.spinning = e;
       }
     },
     spin() {
+      this.calculateBalance();
       this.results = [];
       this.$refs.reel1.start();
       this.$refs.reel2.start();
@@ -181,7 +216,7 @@ export default {
 
       this.results.push(resultData);
       if (this.results.length === 3) {
-        this.checkWin(this.results);
+        this.processWin(this.results);
       }
     },
     checkArrayEqualLength(array) {
@@ -193,32 +228,76 @@ export default {
       // Otherwise, return true
       return true;
     },
-    checkWin(data) {
+    handleArrayComparison(arr, ptArr) {
+      console.log(arr);
+      // Returns true if all array items match paytable combination array items
+      return arr.toString() == ptArr.toString();
+    },
+    handleLooseArrayComparison(arr, ptArr) {
+      return arr.every((v) => ptArr.includes(v));
+    },
+    checkArrayLength(arr) {
+      return arr.length > 0;
+    },
+    calculateBalance(value = null) {
+      let { currentBalance } = this;
+      if (!value) {
+        currentBalance -= 1;
+      }
+      currentBalance += value;
+    },
+    checkWin(array, position) {
+      // Check if array has items
+      if (!this.checkArrayLength(array)) return;
+      const paytable = this.payTable;
+
+      // For loop through paytable to get objects for comparison
+      for (let i = 0; i < paytable.length; i++) {
+        const combinationArray = paytable[i].combination;
+
+        if (handleArrayComparison(array, combinationArray)) {
+          const obj = !array.includes("Cherry") //Checks for no cherries in array
+            ? paytable[i] //Sets obj variable to obj that has no cherries
+            : paytable.filter((item) => item.position === position); // Filter paytable by position parameter
+          obj["position"] = position; //Sets position of object
+          handleBalanceCalculate(obj["value"]);
+          break;
+        }
+        if (handleLooseArrayComparison(array, combinationArray)) {
+          let obj = paytable[i];
+          obj["position"] = position;
+
+          handleBalanceCalculate(obj["value"]);
+          break;
+        }
+      }
+    },
+    processWin(data) {
       if (!this.checkArrayEqualLength(data)) {
         return;
       }
-      const paytable = this.payTable;
       let topArray = [];
-      let midArray = [];
-      let botArray = [];
+      let centerArray = [];
+      let bottomArray = [];
       if (data[0].length === 2) {
         topArray.push([...data[0]].shift());
         topArray.push([...data[1]].shift());
         topArray.push([...data[2]].shift());
 
-        botArray.push([...data[0]].pop());
-        botArray.push([...data[1]].pop());
-        botArray.push([...data[2]].pop());
+        bottomArray.push([...data[0]].pop());
+        bottomArray.push([...data[1]].pop());
+        bottomArray.push([...data[2]].pop());
       } else {
-        midArray.push(...data[0], ...data[1], ...data[2]);
+        centerArray.push(...data[0], ...data[1], ...data[2]);
       }
 
-      // Loop through paytable
-      // Compare data[0].every(v => combination.includes(v))
       console.log(topArray);
-      console.log(midArray);
-      console.log(botArray);
-      for (let i = 0; i < paytable.length; i++) {}
+      console.log(centerArray);
+      console.log(bottomArray);
+
+      this.checkWin(topArray);
+      this.checkWin(centerArray);
+      this.checkWin(bottomArray);
     },
   },
 };
@@ -238,7 +317,7 @@ export default {
   top: calc(var(--tileSize) * 0.7 * 1.1666);
   height: 5px;
   width: 100%;
-  background: #aed581;
+  background: grey;
 }
 
 .SlotMachine-payline--mid {
@@ -246,7 +325,7 @@ export default {
   top: calc(var(--tileSize) * 1.3 * 1.1666);
   height: 5px;
   width: 100%;
-  background: #aed581;
+  background: grey;
 }
 
 .SlotMachine-payline--bot {
@@ -254,7 +333,27 @@ export default {
   top: calc(var(--tileSize) * 1.9 * 1.1666);
   height: 5px;
   width: 100%;
-  background: #aed581;
+  background: grey;
+}
+
+.payline-win {
+  background: #7cb342;
+  z-index: 1;
+}
+
+.gradient-overlay {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  background: linear-gradient(
+    to bottom,
+    rgba(64, 64, 64, 1) 0%,
+    rgba(64, 64, 64, 0) 7%,
+    rgba(64, 64, 64, 0) 93%,
+    rgba(64, 64, 64, 1) 100%
+  );
 }
 
 .paytable {
