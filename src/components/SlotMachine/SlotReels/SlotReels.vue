@@ -1,17 +1,17 @@
 <template>
   <div class="Reel-wrapper white">
     <transition
-      v-on:before-enter="beforeEnter"
-      v-on:enter="enter"
-      v-on:leave="leave"
-      v-on:css="false"
+      @before-enter="beforeEnter"
+      @enter="enter"
+      @leave="leave"
+      @css="false"
     >
       <div
         v-show="spin"
         id="reels"
         name="slide"
         class="d-flex flex-column mb-6 white"
-        :class="offset === 0 ? 'Reel' : 'Reel-offset'"
+        :class="this.handleReelClass()"
       >
         <img
           v-for="(item, index) in shuffledReelTileData"
@@ -29,9 +29,17 @@
 import { gsap } from "gsap";
 
 export default {
+  name: "SlotReel",
+  emits: ["reel-spinning", "stopped"],
   props: {
     duration: {
       type: Number,
+    },
+    debugEnabled: {
+      type: Boolean,
+    },
+    debugReel: {
+      type: Object,
     },
   },
   data: () => ({
@@ -63,6 +71,7 @@ export default {
     offset: 0,
   }),
   watch: {
+    // Countdown timer for reels
     spin(value) {
       if (value) {
         setTimeout(() => {
@@ -114,7 +123,36 @@ export default {
       }
       return a;
     },
+    setDebugSymbols() {
+      if (!this.debugEnabled) return;
+      const symbol = this.debugReel.symbol;
+      // Since position of where the reel is stopped always land on index 9 and 10
+      // we can replace the object in the array with our debug props
+
+      if (this.debugReel.position.name === "center") {
+        this.reelTileData[9] = {
+          image: `/assets/${symbol}.png`,
+          name: `${symbol}`,
+        };
+      }
+
+      if (this.debugReel.position.name === "top") {
+        this.reelTileData[9] = {
+          image: `/assets/${symbol}.png`,
+          name: `${symbol}`,
+        };
+      }
+
+      if (this.debugReel.position.name === "bottom") {
+        this.reelTileData[10] = {
+          image: `/assets/${symbol}.png`,
+          name: `${symbol}`,
+        };
+      }
+    },
     start() {
+      // Set debug props
+      this.setDebugSymbols();
       // Start spinning of roulette
       this.randomIndex();
       this.spinRoulette();
@@ -124,7 +162,9 @@ export default {
       this.spin = true;
       // reel-spinning emits a boolean that will disable spin button
       this.$emit("reel-spinning", this.spin);
-      this.reelTileData = this.shuffleArray(this.reelTileData);
+      this.reelTileData = this.debugEnabled
+        ? this.reelTileData
+        : this.shuffleArray(this.reelTileData);
     },
     animateEnd() {
       if (this.reelDuration > 0) {
@@ -135,21 +175,35 @@ export default {
 
         let results = [];
         if (this.offset === 1) {
-          console.log("offset1", this.offset);
-
+          // Reels will always stop on index 9 or 10 of array
           results.push(this.shuffledReelTileData[9]);
           results.push(this.shuffledReelTileData[10]);
           return this.$emit("stopped", results);
         }
-        console.log("offset0", this.offset);
 
         results.push(this.shuffledReelTileData[9]);
         return this.$emit("stopped", results);
       }
     },
     randomIndex() {
+      if (this.debugEnabled) {
+        this.offset = this.debugReel.position.value;
+        return true;
+      }
       this.offset = Math.floor(Math.random() * 2);
+      return false;
     },
+    handleReelClass() {
+      // Reel = Center [1]
+      // Offset = Top & Bottom [0]
+      let reelClass = null;
+      if (this.debugEnabled) {
+        return (reelClass =
+          this.debugReel.position.value === 0 ? "Reel" : "Reel-offset");
+      }
+      return (reelClass = this.offset === 0 ? "Reel" : "Reel-offset");
+    },
+    // Reel spinning animation
     beforeEnter(el) {
       let vm = this;
       // console.log("beforeEnter");
@@ -194,7 +248,11 @@ export default {
   },
   computed: {
     shuffledReelTileData() {
-      return this.shuffleArray(this.reelTileData);
+      if (!this.debugEnabled) {
+        return this.shuffleArray(this.reelTileData);
+      }
+
+      return this.reelTileData;
     },
   },
 };
@@ -226,6 +284,10 @@ export default {
 
 .Reel-offset.v-leave-active {
   bottom: 85px;
+}
+
+.Reel-wrapper {
+  z-index: 2;
 }
 
 @media only screen and (min-width: 540px) and (max-width: 959px) {

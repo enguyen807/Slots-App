@@ -1,137 +1,256 @@
 <template>
-  <v-container fluid class="d-flex justify-center mb-6" flat tile>
-    <v-card flat class="d-flex flex-column flex-grow-1 flex-md-row pa-3">
-      <v-col cols="12" md="6" class="justify-center">
-        <div
-          class="SlotMachine d-flex justify-space-between black ma-auto width-380"
-        >
+  <v-container fluid class="d-flex flex-column justify-center mb-6" flat tile>
+    <v-form ref="slotBalanceForm" v-model="formIsValid">
+      <v-card flat class="d-flex flex-column flex-grow-1 flex-md-row pa-3">
+        <v-col cols="12" md="6" class="justify-center">
           <div
-            ref="payline1"
-            class="SlotMachine-payline--top"
-            :class="winningLine === 'top' ? 'payline-win' : ''"
-          ></div>
-          <div
-            ref="payline2"
-            class="SlotMachine-payline--mid"
-            :class="winningLine === 'center' ? 'payline-win' : ''"
-          ></div>
-          <div
-            ref="payline3"
-            class="SlotMachine-payline--bot"
-            :class="winningLine === 'bottom' ? 'payline-win' : ''"
-          ></div>
-          <Reels
-            :duration="2"
-            name="reel1"
-            ref="reel1"
-            v-on:stopped="reelStopped"
-          ></Reels>
-          <Reels
-            :duration="4"
-            name="reel2"
-            ref="reel2"
-            v-on:stopped="reelStopped"
-            class="mx-4"
-          ></Reels>
-          <Reels
-            :duration="6"
-            name="reel3"
-            ref="reel3"
-            @reel-spinning="handleSpinStatus"
-            v-on:stopped="reelStopped"
-          ></Reels>
-          <div class="gradient-overlay"></div>
-        </div>
-        <v-text-field
-          label="Credits"
-          class="credits--input mt-6 ma-auto width-380"
-          outlined
-          dense
-          v-model="currentBalance"
-        ></v-text-field>
-      </v-col>
-      <v-col cols="12" md="6" class="flex-column">
-        <div class="width-380 paytable ma-auto">
-          <div
-            class="paytable--wrapper"
-            v-for="(item, index) in payTable"
-            :key="index"
+            class="SlotMachine d-flex justify-space-between black ma-auto width-380"
           >
-            <v-row
-              class="paytable--row"
-              v-if="
-                !handleArrayComparison(['7', 'Cherry'], item.combination) &&
-                !handleArrayComparison(
-                  ['BAR', '2xBAR', '3xBAR'],
-                  item.combination
-                )
-              "
-            >
-              <v-col class="paytable--imgColumn pr-0 col-4">
-                <img
-                  class="paytable--img"
-                  v-for="(symbol, index) in item.combination"
-                  :key="symbol + index"
-                  :src="`/assets/${symbol}.png`"
-                  width="25"
-                  height="22"
-                />
-              </v-col>
-              <v-col class="paytable--textColumn col-4 col-md-5">
-                on {{ item.position ? item.position : "any" }} line
-              </v-col>
-              <v-col
-                class="paytable--valueColumn text-right"
-                v-if="!item.win"
-                >{{ item.value }}</v-col
-              >
-            </v-row>
-            <v-row class="paytable--row" v-else>
-              <v-col
-                class="paytable--imgColumn paytable--imgColumn-single col-10"
-              >
-                Any combination of
-
-                <img
-                  class="paytable--img"
-                  v-for="(symbol, index) in item.combination"
-                  :key="symbol + index"
-                  :src="`/assets/${symbol}.png`"
-                  width="25"
-                  height="22"
-                />
-
-                on any line
-              </v-col>
-              <v-col
-                class="paytable--valueColumn text-right"
-                v-if="!item.win"
-                >{{ item.value }}</v-col
-              >
-            </v-row>
+            <div
+              ref="payline1"
+              class="SlotMachine-payline--top"
+              :class="handlePaylineClass('top')"
+            ></div>
+            <div
+              ref="payline2"
+              class="SlotMachine-payline--mid"
+              :class="handlePaylineClass('center')"
+            ></div>
+            <div
+              ref="payline3"
+              class="SlotMachine-payline--bot"
+              :class="handlePaylineClass('bottom')"
+            ></div>
+            <Reels
+              name="reel1"
+              ref="reel1"
+              :duration="2"
+              :debug-enabled="debugArea.enableDebug"
+              :debug-reel="debugArea.leftReel"
+              @stopped="reelStopped"
+            ></Reels>
+            <Reels
+              class="mx-4"
+              name="reel2"
+              ref="reel2"
+              :duration="4"
+              :debug-enabled="debugArea.enableDebug"
+              :debug-reel="debugArea.centerReel"
+              @stopped="reelStopped"
+            ></Reels>
+            <Reels
+              name="reel3"
+              ref="reel3"
+              :duration="6"
+              :debug-enabled="debugArea.enableDebug"
+              :debug-reel="debugArea.rightReel"
+              @reel-spinning="handleSpinStatus"
+              @stopped="reelStopped"
+            ></Reels>
+            <div class="gradient-overlay"></div>
           </div>
-        </div>
-        <div class="width-380 mt-3 ma-auto">
-          <v-btn
-            :disabled="this.spinning"
-            block
-            elevation="2"
-            raised
-            class="accent mt-3"
-            @mousedown="spin()"
-          >
-            Spin
-          </v-btn>
-        </div>
-      </v-col>
-    </v-card>
+          <v-text-field
+            label="Credits"
+            class="credits--input mt-6 ma-auto width-380"
+            outlined
+            dense
+            :rules="rules"
+            type="number"
+            max="5000"
+            v-model.number="currentBalance"
+          ></v-text-field>
+        </v-col>
+        <v-col cols="12" md="6" class="flex-column">
+          <div class="width-380 paytable ma-auto">
+            <div
+              class="paytable--wrapper"
+              v-for="(item, index) in payTable"
+              :key="index"
+            >
+              <v-row
+                class="paytable--row"
+                v-if="
+                  !handleArrayComparison(['7', 'Cherry'], item.combination) &&
+                  !handleArrayComparison(
+                    ['BAR', '2xBAR', '3xBAR'],
+                    item.combination
+                  )
+                "
+              >
+                <v-col class="paytable--imgColumn pr-0 col-4">
+                  <img
+                    class="paytable--img"
+                    v-for="(symbol, index) in item.combination"
+                    :key="symbol + index"
+                    :src="`/assets/${symbol}.png`"
+                    width="25"
+                    height="22"
+                  />
+                </v-col>
+                <v-col class="paytable--textColumn col-4 col-md-5">
+                  on {{ item.position ? item.position : "any" }} line
+                </v-col>
+                <transition
+                  @before-enter="beforeEnter"
+                  @leave="leave"
+                  @css="false"
+                >
+                  <v-col
+                    class="paytable--valueColumn text-right"
+                    v-if="!item.win"
+                    >{{ item.value }}</v-col
+                  >
+                </transition>
+              </v-row>
+              <v-row class="paytable--row" v-else>
+                <v-col
+                  class="paytable--imgColumn paytable--imgColumn-single col-10"
+                >
+                  Any combination of
+
+                  <img
+                    class="paytable--img"
+                    v-for="(symbol, index) in item.combination"
+                    :key="symbol + index"
+                    :src="`/assets/${symbol}.png`"
+                    width="25"
+                    height="22"
+                  />
+
+                  on any line
+                </v-col>
+                <transition
+                  @before-enter="beforeEnter"
+                  @leave="leave"
+                  @css="false"
+                >
+                  <v-col
+                    class="paytable--valueColumn text-right"
+                    v-if="!item.win"
+                    >{{ item.value }}</v-col
+                  >
+                </transition>
+              </v-row>
+            </div>
+          </div>
+          <div class="width-400 mt-3 ma-auto">
+            <v-btn
+              :disabled="this.spinning || !formIsValid"
+              block
+              elevation="2"
+              raised
+              class="accent mt-3"
+              @mousedown="spin()"
+            >
+              Spin
+            </v-btn>
+          </div>
+        </v-col>
+      </v-card>
+    </v-form>
+    <div class="px-6 mb-6">
+      <v-expansion-panels>
+        <v-expansion-panel>
+          <v-expansion-panel-header> Debug Area </v-expansion-panel-header>
+          <v-expansion-panel-content>
+            <v-row>
+              <v-col>
+                <div class="text-subtitle-2 mb-3">Enable Debug Mode?</div>
+                <v-switch
+                  v-model="debugArea.enableDebug"
+                  color="accent"
+                  :label="`${
+                    debugArea.enableDebug ? 'Debug Enabled' : 'Debug Disabled'
+                  }`"
+                  @change="resetWinState"
+                ></v-switch>
+              </v-col>
+              <v-col>
+                <div class="text-subtitle-2 mb-3">Left Reel</div>
+                <v-select
+                  label="Symbol Position"
+                  outlined
+                  dense
+                  :items="debugArea.positions"
+                  item-text="name"
+                  item-value="name"
+                  return-object
+                  v-model="debugArea.leftReel.position"
+                  :disabled="!debugArea.enableDebug"
+                  @change="resetWinState"
+                ></v-select>
+                <v-select
+                  label="Symbol"
+                  outlined
+                  dense
+                  :items="debugArea.symbols"
+                  v-model="debugArea.leftReel.symbol"
+                  :disabled="!debugArea.enableDebug"
+                  @change="resetWinState"
+                ></v-select>
+              </v-col>
+              <v-col>
+                <div class="text-subtitle-2 mb-3">Center Reel</div>
+                <v-select
+                  label="Symbol Position"
+                  outlined
+                  dense
+                  item-text="name"
+                  item-value="name"
+                  return-object
+                  :items="debugArea.positions"
+                  v-model="debugArea.centerReel.position"
+                  :disabled="!debugArea.enableDebug"
+                  @change="resetWinState"
+                ></v-select>
+                <v-select
+                  label="Symbol"
+                  outlined
+                  dense
+                  :items="debugArea.symbols"
+                  v-model="debugArea.centerReel.symbol"
+                  :disabled="!debugArea.enableDebug"
+                  @change="resetWinState"
+                ></v-select>
+              </v-col>
+              <v-col>
+                <div class="text-subtitle-2 mb-3">Right Reel</div>
+                <v-select
+                  label="Symbol Position"
+                  outlined
+                  dense
+                  item-text="name"
+                  item-value="name"
+                  return-object
+                  :items="debugArea.positions"
+                  v-model="debugArea.rightReel.position"
+                  :disabled="!debugArea.enableDebug"
+                  @change="resetWinState"
+                ></v-select>
+                <v-select
+                  label="Symbol"
+                  outlined
+                  dense
+                  :items="debugArea.symbols"
+                  v-model="debugArea.rightReel.symbol"
+                  :disabled="!debugArea.enableDebug"
+                  @change="resetWinState"
+                ></v-select>
+              </v-col>
+            </v-row>
+          </v-expansion-panel-content>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </div>
   </v-container>
 </template>
 
 <script>
 import Reels from "@/components/SlotMachine/SlotReels/SlotReels.vue";
+import { gsap } from "gsap";
 
 export default {
+  name: "SlotMachine",
   components: {
     Reels,
   },
@@ -142,6 +261,7 @@ export default {
         position: "top",
         combination: ["Cherry", "Cherry", "Cherry"],
         value: 2000,
+        win: false,
       },
       {
         position: "center",
@@ -192,9 +312,37 @@ export default {
         win: false,
       },
     ],
+    formIsValid: true,
     spinning: false,
     results: [],
-    winningLine: null,
+    winningLine1: null,
+    winningLine2: null,
+    debugArea: {
+      enableDebug: false,
+      positions: [
+        { name: "top", value: 1 },
+        { name: "center", value: 0 },
+        { name: "bottom", value: 1 },
+      ],
+      symbols: ["BAR", "2xBAR", "3xBAR", "7", "Cherry"],
+      leftReel: {
+        position: { name: "top", value: 1 },
+        symbol: "BAR",
+      },
+      centerReel: {
+        position: { name: "top", value: 1 },
+        symbol: "BAR",
+      },
+      rightReel: {
+        position: { name: "top", value: 1 },
+        symbol: "BAR",
+      },
+    },
+    rules: [
+      (v) => !!v || "Required",
+      (v) => v > 0 || "Balance is too low",
+      (v) => v <= 5000 || "Balance should not be above 5000",
+    ],
   }),
   methods: {
     handleSpinStatus(e) {
@@ -202,7 +350,15 @@ export default {
         this.spinning = e;
       }
     },
+    handlePaylineClass(position) {
+      let payline = null;
+      return (payline =
+        this.winningLine2 === position || this.winningLine1 === position
+          ? `payline-win`
+          : "");
+    },
     spin() {
+      this.resetWinState();
       this.calculateBalance();
       this.results = [];
       this.$refs.reel1.start();
@@ -210,12 +366,8 @@ export default {
       this.$refs.reel3.start();
     },
     reelStopped(resultData) {
-      // console.log("Payline1: ", this.$refs.payline1.getBoundingClientRect());
-      // console.log("Payline2: ", this.$refs.payline2.getBoundingClientRect());
-      // console.log("Payline3: ", this.$refs.payline3.getBoundingClientRect());
-
       this.results.push(resultData);
-      if (this.results.length === 3) {
+      if (this.results.length === 3 && !this.spinning) {
         this.processWin(this.results);
       }
     },
@@ -229,22 +381,27 @@ export default {
       return true;
     },
     handleArrayComparison(arr, ptArr) {
-      console.log(arr);
       // Returns true if all array items match paytable combination array items
       return arr.toString() == ptArr.toString();
     },
     handleLooseArrayComparison(arr, ptArr) {
       return arr.every((v) => ptArr.includes(v));
     },
+    resetWinState() {
+      this.winningLine1 = null;
+      this.winningLine2 = null;
+
+      let index = this.payTable.findIndex((v) => v.win === true);
+      if (index !== -1) this.payTable[index].win = false;
+    },
     checkArrayLength(arr) {
-      return arr.length > 0;
+      return arr.length > 0 && arr.length === 3;
     },
     calculateBalance(value = null) {
-      let { currentBalance } = this;
       if (!value) {
-        currentBalance -= 1;
+        this.currentBalance -= 1;
       }
-      currentBalance += value;
+      this.currentBalance += value;
     },
     checkWin(array, position) {
       // Check if array has items
@@ -255,19 +412,26 @@ export default {
       for (let i = 0; i < paytable.length; i++) {
         const combinationArray = paytable[i].combination;
 
-        if (handleArrayComparison(array, combinationArray)) {
+        if (this.handleArrayComparison(array, combinationArray)) {
           const obj = !array.includes("Cherry") //Checks for no cherries in array
             ? paytable[i] //Sets obj variable to obj that has no cherries
             : paytable.filter((item) => item.position === position); // Filter paytable by position parameter
           obj["position"] = position; //Sets position of object
-          handleBalanceCalculate(obj["value"]);
+          obj["win"] = true;
+          this.winningLine1 = position;
+          this.calculateBalance(obj["value"]);
           break;
         }
-        if (handleLooseArrayComparison(array, combinationArray)) {
+        if (this.handleLooseArrayComparison(array, combinationArray)) {
           let obj = paytable[i];
           obj["position"] = position;
-
-          handleBalanceCalculate(obj["value"]);
+          obj["win"] = true;
+          if (this.winningLine1) {
+            this.winningLine2 = position;
+          } else {
+            this.winningLine1 = position;
+          }
+          this.calculateBalance(obj["value"]);
           break;
         }
       }
@@ -276,28 +440,44 @@ export default {
       if (!this.checkArrayEqualLength(data)) {
         return;
       }
-      let topArray = [];
-      let centerArray = [];
-      let bottomArray = [];
+      let topArrayObj = [];
+      let centerArrayObj = [];
+      let bottomArrayObj = [];
       if (data[0].length === 2) {
-        topArray.push([...data[0]].shift());
-        topArray.push([...data[1]].shift());
-        topArray.push([...data[2]].shift());
+        topArrayObj.push([...data[0]].shift());
+        topArrayObj.push([...data[1]].shift());
+        topArrayObj.push([...data[2]].shift());
 
-        bottomArray.push([...data[0]].pop());
-        bottomArray.push([...data[1]].pop());
-        bottomArray.push([...data[2]].pop());
+        bottomArrayObj.push([...data[0]].pop());
+        bottomArrayObj.push([...data[1]].pop());
+        bottomArrayObj.push([...data[2]].pop());
       } else {
-        centerArray.push(...data[0], ...data[1], ...data[2]);
+        centerArrayObj.push(...data[0], ...data[1], ...data[2]);
       }
 
-      console.log(topArray);
-      console.log(centerArray);
-      console.log(bottomArray);
+      const topArray = topArrayObj.map((v) => v.name);
+      const centerArray = centerArrayObj.map((v) => v.name);
+      const bottomArray = bottomArrayObj.map((v) => v.name);
 
-      this.checkWin(topArray);
-      this.checkWin(centerArray);
-      this.checkWin(bottomArray);
+      this.checkWin(topArray, "top");
+      this.checkWin(centerArray, "center");
+      this.checkWin(bottomArray, "bottom");
+    },
+    // Handle blinking text
+    beforeEnter(el) {
+      gsap.set(el, {
+        color: "#000",
+      });
+    },
+    leave(el, done) {
+      gsap.to(el, {
+        duration: 0.7,
+        repeat: -1,
+        color: "#fb8c00",
+        onComplete() {
+          done;
+        },
+      });
     },
   },
 };
@@ -318,6 +498,7 @@ export default {
   height: 5px;
   width: 100%;
   background: grey;
+  z-index: 1;
 }
 
 .SlotMachine-payline--mid {
@@ -326,6 +507,7 @@ export default {
   height: 5px;
   width: 100%;
   background: grey;
+  z-index: 1;
 }
 
 .SlotMachine-payline--bot {
@@ -334,11 +516,12 @@ export default {
   height: 5px;
   width: 100%;
   background: grey;
+  z-index: 1;
 }
 
 .payline-win {
   background: #7cb342;
-  z-index: 1;
+  z-index: 4;
 }
 
 .gradient-overlay {
@@ -354,6 +537,7 @@ export default {
     rgba(64, 64, 64, 0) 93%,
     rgba(64, 64, 64, 1) 100%
   );
+  z-index: 3;
 }
 
 .paytable {
@@ -367,6 +551,10 @@ export default {
 
 .width-380 {
   max-width: 380px;
+}
+
+width-400 {
+  max-width: 400px;
 }
 
 .paytable--img {
