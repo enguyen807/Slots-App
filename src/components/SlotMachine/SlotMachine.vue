@@ -25,6 +25,7 @@
               name="reel1"
               ref="reel1"
               :duration="2"
+              :reel-data="this.reelData"
               :debug-enabled="debugArea.enableDebug"
               :debug-reel="debugArea.leftReel"
               @stopped="reelStopped"
@@ -34,6 +35,7 @@
               name="reel2"
               ref="reel2"
               :duration="4"
+              :reel-data="this.reelData"
               :debug-enabled="debugArea.enableDebug"
               :debug-reel="debugArea.centerReel"
               @stopped="reelStopped"
@@ -42,6 +44,7 @@
               name="reel3"
               ref="reel3"
               :duration="6"
+              :reel-data="this.reelData"
               :debug-enabled="debugArea.enableDebug"
               :debug-reel="debugArea.rightReel"
               @reel-spinning="handleSpinStatus"
@@ -97,7 +100,7 @@
                     class="paytable--img"
                     v-for="(symbol, index) in item.combination"
                     :key="symbol + index"
-                    :src="`/assets/${symbol}.png`"
+                    :src="require(`@/assets/${symbol}.png`)"
                     width="25"
                     height="22"
                   />
@@ -127,7 +130,7 @@
                     class="paytable--img"
                     v-for="(symbol, index) in item.combination"
                     :key="symbol + index"
-                    :src="`/assets/${symbol}.png`"
+                    :src="require(`@/assets/${symbol}.png`)"
                     width="25"
                     height="22"
                   />
@@ -164,104 +167,100 @@
       </v-card>
     </v-form>
     <div class="px-6 mb-6">
-      <v-expansion-panels>
-        <v-expansion-panel>
-          <v-expansion-panel-header> Debug Area </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <v-row>
-              <v-col>
-                <div class="text-subtitle-2 mb-3">Enable Debug Mode?</div>
-                <v-switch
-                  v-model="debugArea.enableDebug"
-                  color="accent"
-                  :label="`${
-                    debugArea.enableDebug ? 'Debug Enabled' : 'Debug Disabled'
-                  }`"
-                  @change="resetWinState"
-                ></v-switch>
-              </v-col>
-              <v-col>
-                <div class="text-subtitle-2 mb-3">Left Reel</div>
-                <v-select
-                  label="Symbol Position"
-                  outlined
-                  dense
-                  :items="debugArea.positions"
-                  item-text="name"
-                  item-value="name"
-                  return-object
-                  v-model="debugArea.leftReel.position"
-                  :disabled="!debugArea.enableDebug"
-                  @change="resetWinState"
-                ></v-select>
-                <v-select
-                  label="Symbol"
-                  outlined
-                  dense
-                  :items="debugArea.symbols"
-                  v-model="debugArea.leftReel.symbol"
-                  :disabled="!debugArea.enableDebug"
-                  @change="resetWinState"
-                ></v-select>
-              </v-col>
-              <v-col>
-                <div class="text-subtitle-2 mb-3">Center Reel</div>
-                <v-select
-                  label="Symbol Position"
-                  outlined
-                  dense
-                  item-text="name"
-                  item-value="name"
-                  return-object
-                  :items="debugArea.positions"
-                  v-model="debugArea.centerReel.position"
-                  :disabled="!debugArea.enableDebug"
-                  @change="resetWinState"
-                ></v-select>
-                <v-select
-                  label="Symbol"
-                  outlined
-                  dense
-                  :items="debugArea.symbols"
-                  v-model="debugArea.centerReel.symbol"
-                  :disabled="!debugArea.enableDebug"
-                  @change="resetWinState"
-                ></v-select>
-              </v-col>
-              <v-col>
-                <div class="text-subtitle-2 mb-3">Right Reel</div>
-                <v-select
-                  label="Symbol Position"
-                  outlined
-                  dense
-                  item-text="name"
-                  item-value="name"
-                  return-object
-                  :items="debugArea.positions"
-                  v-model="debugArea.rightReel.position"
-                  :disabled="!debugArea.enableDebug"
-                  @change="resetWinState"
-                ></v-select>
-                <v-select
-                  label="Symbol"
-                  outlined
-                  dense
-                  :items="debugArea.symbols"
-                  v-model="debugArea.rightReel.symbol"
-                  :disabled="!debugArea.enableDebug"
-                  @change="resetWinState"
-                ></v-select>
-              </v-col>
-            </v-row>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-      </v-expansion-panels>
+      <ExpansionPanel name="Debug Area">
+        <v-row>
+          <v-col>
+            <div class="text-subtitle-2 mb-3">Enable Debug Mode?</div>
+            <v-switch
+              v-model="debugArea.enableDebug"
+              color="accent"
+              :label="`${
+                debugArea.enableDebug ? 'Debug Enabled' : 'Debug Disabled'
+              }`"
+              @change="resetWinState"
+            ></v-switch>
+          </v-col>
+          <v-col>
+            <div class="text-subtitle-2 mb-3">Left Reel</div>
+            <v-select
+              label="Symbol Position"
+              outlined
+              dense
+              :items="debugArea.positions"
+              item-text="name"
+              item-value="name"
+              return-object
+              v-model="debugArea.leftReel.position"
+              :disabled="!debugArea.enableDebug"
+              @change="resetWinState"
+            ></v-select>
+            <v-select
+              label="Symbol"
+              outlined
+              dense
+              :items="debugArea.symbols"
+              v-model="debugArea.leftReel.symbol"
+              :disabled="!debugArea.enableDebug"
+              @change="resetWinState"
+            ></v-select>
+          </v-col>
+          <v-col>
+            <div class="text-subtitle-2 mb-3">Center Reel</div>
+            <v-select
+              label="Symbol Position"
+              outlined
+              dense
+              item-text="name"
+              item-value="name"
+              return-object
+              :items="debugArea.positions"
+              v-model="debugArea.centerReel.position"
+              :disabled="!debugArea.enableDebug"
+              @change="resetWinState"
+            ></v-select>
+            <v-select
+              label="Symbol"
+              outlined
+              dense
+              :items="debugArea.symbols"
+              v-model="debugArea.centerReel.symbol"
+              :disabled="!debugArea.enableDebug"
+              @change="resetWinState"
+            ></v-select>
+          </v-col>
+          <v-col>
+            <div class="text-subtitle-2 mb-3">Right Reel</div>
+            <v-select
+              label="Symbol Position"
+              outlined
+              dense
+              item-text="name"
+              item-value="name"
+              return-object
+              :items="debugArea.positions"
+              v-model="debugArea.rightReel.position"
+              :disabled="!debugArea.enableDebug"
+              @change="resetWinState"
+            ></v-select>
+            <v-select
+              label="Symbol"
+              outlined
+              dense
+              :items="debugArea.symbols"
+              v-model="debugArea.rightReel.symbol"
+              :disabled="!debugArea.enableDebug"
+              @change="resetWinState"
+            ></v-select>
+          </v-col>
+        </v-row>
+      </ExpansionPanel>
     </div>
   </v-container>
 </template>
 
 <script>
 import Reels from "@/components/SlotMachine/SlotReels/SlotReels.vue";
+import ExpansionPanel from "@/components/ExpansionPanel/ExpansionPane.vue";
 
 import { gsap } from "gsap";
 const confetti = require("canvas-confetti");
@@ -270,6 +269,7 @@ export default {
   name: "SlotMachine",
   components: {
     Reels,
+    ExpansionPanel,
   },
   mounted() {},
   data: () => ({
@@ -331,6 +331,28 @@ export default {
         win: false,
       },
     ],
+    reelData: [
+      {
+        name: "3xBAR",
+        image: "/assets/3xBAR.png",
+      },
+      {
+        name: "2xBAR",
+        image: "/assets/2xBAR.png",
+      },
+      {
+        name: "BAR",
+        image: "/assets/BAR.png",
+      },
+      {
+        name: "7",
+        image: "/assets/7.png",
+      },
+      {
+        name: "Cherry",
+        image: "/assets/Cherry.png",
+      },
+    ],
     formIsValid: true,
     spinning: false,
     results: [],
@@ -382,7 +404,6 @@ export default {
       // Prevent user keyboard input if value is equal to 5000
       // However allow user to delete input value using backspace
       if (value <= 5000 || event.key === "Backspace") {
-        console.log("value is lesser than 5000");
         this.currentBalance = value;
         return;
       }

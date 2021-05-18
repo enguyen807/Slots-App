@@ -18,7 +18,7 @@
           :key="item.name + index"
           class="Reel-image my-3"
           :data-index="index"
-          :src="`${item.image}`"
+          :src="require(`@/assets/${item.name}.png`)"
         />
       </div>
     </transition>
@@ -41,32 +41,15 @@ export default {
     debugReel: {
       type: Object,
     },
+    reelData: {
+      type: Array,
+      required: true,
+    },
   },
   data: () => ({
     spin: false,
     reelTileData: [],
-    reelData: [
-      {
-        name: "3xBAR",
-        image: "/assets/3xBAR.png",
-      },
-      {
-        name: "2xBAR",
-        image: "/assets/2xBAR.png",
-      },
-      {
-        name: "BAR",
-        image: "/assets/BAR.png",
-      },
-      {
-        name: "7",
-        image: "/assets/7.png",
-      },
-      {
-        name: "Cherry",
-        image: "/assets/Cherry.png",
-      },
-    ],
+
     reelDuration: 0,
     offset: 0,
   }),
