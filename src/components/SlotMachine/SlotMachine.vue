@@ -49,16 +49,31 @@
             ></Reels>
             <div class="gradient-overlay"></div>
           </div>
-          <v-text-field
-            label="Credits"
-            class="credits--input mt-6 ma-auto width-380"
-            outlined
-            dense
-            :rules="rules"
-            type="number"
-            max="5000"
-            v-model.number="currentBalance"
-          ></v-text-field>
+          <div class="d-flex">
+            <v-text-field
+              label="Credits"
+              class="credits--input mt-6 ma-auto width-380"
+              outlined
+              dense
+              :rules="rules"
+              type="number"
+              min="0"
+              max="5000"
+              :value="currentBalance"
+              @keydown="handleBalanceInput"
+            ></v-text-field>
+            <v-text-field
+              label="Wins"
+              class="credits--input mt-6 ma-auto width-380"
+              outlined
+              dense
+              min="0"
+              max="5000"
+              disabled
+              type="number"
+              :value="currentWins"
+            ></v-text-field>
+          </div>
         </v-col>
         <v-col cols="12" md="6" class="flex-column">
           <div class="width-380 paytable ma-auto">
@@ -247,15 +262,19 @@
 
 <script>
 import Reels from "@/components/SlotMachine/SlotReels/SlotReels.vue";
+
 import { gsap } from "gsap";
+const confetti = require("canvas-confetti");
 
 export default {
   name: "SlotMachine",
   components: {
     Reels,
   },
+  mounted() {},
   data: () => ({
-    currentBalance: 100,
+    currentBalance: 10,
+    currentWins: 0,
     payTable: [
       {
         position: "top",
@@ -340,8 +359,8 @@ export default {
     },
     rules: [
       (v) => !!v || "Required",
-      (v) => v > 0 || "Balance is too low",
-      (v) => v <= 5000 || "Balance should not be above 5000",
+      (v) => v > 0 || "Credits are too low",
+      (v) => v <= 5000 || "Credits should not be above 5000",
     ],
   }),
   methods: {
@@ -356,6 +375,18 @@ export default {
         this.winningLine2 === position || this.winningLine1 === position
           ? `payline-win`
           : "");
+    },
+    handleBalanceInput(event) {
+      // Value equals input value or default 0
+      let value = parseInt(event.target.value) || 0;
+      // Prevent user keyboard input if value is equal to 5000
+      // However allow user to delete input value using backspace
+      if (value <= 5000 || event.key === "Backspace") {
+        console.log("value is lesser than 5000");
+        this.currentBalance = value;
+        return;
+      }
+      event.preventDefault();
     },
     spin() {
       this.resetWinState();
@@ -401,7 +432,7 @@ export default {
       if (!value) {
         this.currentBalance -= 1;
       }
-      this.currentBalance += value;
+      this.currentWins += value;
     },
     checkWin(array, position) {
       // Check if array has items
@@ -415,9 +446,18 @@ export default {
         if (this.handleArrayComparison(array, combinationArray)) {
           const obj = !array.includes("Cherry") //Checks for no cherries in array
             ? paytable[i] //Sets obj variable to obj that has no cherries
-            : paytable.filter((item) => item.position === position); // Filter paytable by position parameter
+            : paytable.filter((item) => item.position === position)[0]; // Filter paytable by position parameter
+
           obj["position"] = position; //Sets position of object
           obj["win"] = true;
+          // If win equals bottom and array items all equal Cherry
+          if (
+            position === "bottom" &&
+            obj["combination"].every((val, i, arr) => val === "Cherry")
+          ) {
+            this.createBigConfetti();
+          }
+          this.createConfetti();
           this.winningLine1 = position;
           this.calculateBalance(obj["value"]);
           break;
@@ -426,6 +466,7 @@ export default {
           let obj = paytable[i];
           obj["position"] = position;
           obj["win"] = true;
+          this.createConfetti();
           if (this.winningLine1) {
             this.winningLine2 = position;
           } else {
@@ -463,7 +504,83 @@ export default {
       this.checkWin(centerArray, "center");
       this.checkWin(bottomArray, "bottom");
     },
-    // Handle blinking text
+    // Confetti Methods
+    createConfetti() {
+      let myCanvas = this.$refs.slotBalanceForm.outerHTML;
+
+      let winExplosion = confetti.create(myCanvas, {
+        resize: true,
+      });
+
+      let count = 200;
+      let defaults = {
+        origin: { y: 0.7 },
+      };
+
+      function fire(particleRatio, opts) {
+        winExplosion(
+          Object.assign({}, defaults, opts, {
+            particleCount: Math.floor(count * particleRatio),
+          })
+        );
+      }
+
+      fire(0.25, {
+        spread: 26,
+        startVelocity: 55,
+      });
+      fire(0.2, {
+        spread: 60,
+      });
+      fire(0.35, {
+        spread: 100,
+        decay: 0.91,
+        scalar: 0.8,
+      });
+      fire(0.1, {
+        spread: 120,
+        startVelocity: 25,
+        decay: 0.92,
+        scalar: 1.2,
+      });
+      fire(0.1, {
+        spread: 120,
+        startVelocity: 45,
+      });
+    },
+    createBigConfetti() {
+      let myCanvas = this.$refs.slotBalanceForm.outerHTML;
+
+      let winExplosion = confetti.create(myCanvas, {
+        resize: true,
+      });
+
+      let duration = 5 * 1000;
+      let end = Date.now() + duration;
+
+      (function frame() {
+        // launch a few confetti from the left edge
+        winExplosion({
+          particleCount: 7,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+        });
+        // and launch a few from the right edge
+        winExplosion({
+          particleCount: 7,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+        });
+
+        // keep going until we are out of time
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      })();
+    },
+    // Handle blinking animation
     beforeEnter(el) {
       gsap.set(el, {
         color: "#000",

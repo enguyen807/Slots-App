@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@mdi/font": "5.9.55",
+    "canvas-confetti": "^1.4.0",
     "core-js": "^3.6.5",
     "gsap": "^3.6.1",
     "roboto-fontface": "*",
