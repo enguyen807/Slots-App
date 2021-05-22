@@ -59,11 +59,9 @@
               outlined
               dense
               :rules="rules"
-              type="number"
-              min="0"
-              max="5000"
+              type="text"
               :value="currentBalance"
-              @keydown="handleBalanceInput"
+              @keyup="handleBalanceInput"
             ></v-text-field>
             <v-text-field
               label="Wins"
@@ -73,7 +71,7 @@
               min="0"
               max="5000"
               disabled
-              type="number"
+              type="text"
               :value="currentWins"
             ></v-text-field>
           </div>
@@ -481,9 +479,8 @@ export default {
           this.createConfetti();
           this.winningLine1 = position;
           this.calculateBalance(obj["value"]);
-          break;
-        }
-        if (this.handleLooseArrayComparison(array, combinationArray)) {
+          continue;
+        } else if (this.handleLooseArrayComparison(array, combinationArray)) {
           let obj = paytable[i];
           obj["position"] = position;
           obj["win"] = true;
@@ -494,7 +491,7 @@ export default {
             this.winningLine1 = position;
           }
           this.calculateBalance(obj["value"]);
-          break;
+          continue;
         }
       }
     },
